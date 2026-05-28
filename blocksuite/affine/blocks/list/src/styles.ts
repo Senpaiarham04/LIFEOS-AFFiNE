@@ -87,11 +87,24 @@ export const listBlockStyles = css`
     justify-content: center;
     transition: transform 0.2s ease;
     transform: rotate(0deg);
-    color: var(--affine-icon-secondary);
+    color: var(--affine-icon-color);
   }
 
   .affine-toggle-arrow.expanded {
     transform: rotate(90deg);
+  }
+
+  .affine-toggle-placeholder {
+    position: absolute;
+    left: 28px;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+    color: var(--affine-black-30);
+    font-size: var(--affine-font-base);
+    user-select: none;
   }
 
   ${listPrefix}

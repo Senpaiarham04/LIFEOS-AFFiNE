@@ -150,6 +150,9 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
 
     const listIcon = getListIcon(model, !collapsed, _onClickIcon);
 
+    const isEmptyToggle =
+      model.props.type === 'toggle' && model.props.text.yText.length === 0;
+
     const textAlignStyle = styleMap({
       textAlign: this.model.props.textAlign$?.value,
     });
@@ -192,6 +195,9 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
               `
             : nothing}
           ${listIcon}
+          ${isEmptyToggle
+            ? html`<div class="affine-toggle-placeholder">Toggle list</div>`
+            : nothing}
           <rich-text
             .yText=${this.model.props.text.yText}
             .inlineEventSource=${this.topContenteditableElement ?? nothing}

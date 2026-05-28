@@ -61,16 +61,19 @@ export function getListIcon(
           ? CheckBoxCheckSolidIcon({ style: 'color: #1E96EB' })
           : CheckBoxUnIcon()}
       </div>`;
-    case 'toggle':
+    case 'toggle': {
+      const hasChildren = model.children.length > 0;
+      const isExpanded = showChildren && hasChildren;
       return html`<div
         contenteditable="false"
         class="affine-list-block__prefix affine-list-block__toggle-prefix"
         @click=${onClick}
       >
-        <div class="affine-toggle-arrow ${showChildren ? 'expanded' : ''}">
+        <div class="affine-toggle-arrow ${isExpanded ? 'expanded' : ''}">
           ${ToggleRightIcon({ width: '16px', height: '16px' })}
         </div>
       </div>`;
+    }
     default:
       console.error('Unknown list type', model.props.type, model);
       return null;

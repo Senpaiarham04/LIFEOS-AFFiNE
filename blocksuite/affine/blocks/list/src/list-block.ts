@@ -35,6 +35,33 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
 
   private _inlineRangeProvider: InlineRangeProvider | null = null;
 
+  private _dragExpandTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private readonly _onDragEnter = (_e: DragEvent) => {
+    if (this.model.props.type !== 'toggle') return;
+    const collapsed = this.store.readonly
+      ? this._readonlyCollapsed
+      : this.model.props.collapsed;
+    if (!collapsed) return;
+    if (this._dragExpandTimer) return;
+    this._dragExpandTimer = setTimeout(() => {
+      this._dragExpandTimer = null;
+      if (this.store.readonly) {
+        this._readonlyCollapsed = false;
+      } else {
+        this.store.captureSync();
+        this.store.updateBlock(this.model, { collapsed: false });
+      }
+    }, 600);
+  };
+
+  private readonly _onDragLeave = (e: DragEvent) => {
+    if (!this._dragExpandTimer) return;
+    if (e.relatedTarget && this.contains(e.relatedTarget as Node)) return;
+    clearTimeout(this._dragExpandTimer);
+    this._dragExpandTimer = null;
+  };
+
   private readonly _onClickIcon = (e: MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -141,6 +168,14 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
     );
   }
 
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._dragExpandTimer) {
+      clearTimeout(this._dragExpandTimer);
+      this._dragExpandTimer = null;
+    }
+  }
+
   override async getUpdateComplete() {
     const result = await super.getUpdateComplete();
     await this._richTextElement?.updateComplete;
@@ -178,7 +213,12 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
     </div>`;
 
     return html`
-      <div class=${'affine-list-block-container'} style="${textAlignStyle}">
+      <div
+        class=${'affine-list-block-container'}
+        style="${textAlignStyle}"
+        @dragenter=${this._onDragEnter}
+        @dragleave=${this._onDragLeave}
+      >
         <div
           class=${classMap({
             'affine-list-rich-text-wrapper': true,

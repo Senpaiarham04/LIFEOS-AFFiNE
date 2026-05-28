@@ -5,7 +5,7 @@ import { playCheckAnimation } from '@blocksuite/affine-components/icons';
 import { TOGGLE_BUTTON_PARENT_CLASS } from '@blocksuite/affine-components/toggle-button';
 import { DefaultInlineManagerExtension } from '@blocksuite/affine-inline-preset';
 import type { ListBlockModel } from '@blocksuite/affine-model';
-import type { RichText } from '@blocksuite/affine-rich-text';
+import { focusTextModel, type RichText } from '@blocksuite/affine-rich-text';
 import {
   BLOCK_CHILDREN_CONTAINER_PADDING_LEFT,
   EDGELESS_TOP_CONTENTEDITABLE_SELECTOR,
@@ -42,13 +42,23 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
     if (this.model.props.type === 'toggle') {
       if (this.store.readonly) {
         this._readonlyCollapsed = !this._readonlyCollapsed;
-      } else {
-        this.store.captureSync();
-        this.store.updateBlock(this.model, {
-          collapsed: !this.model.props.collapsed,
-        });
+        return;
       }
 
+      if (this.model.children.length === 0) {
+        // No children yet: create one and focus it (like Notion)
+        this.store.captureSync();
+        const childId = this.store.addBlock('affine:paragraph', {}, this.model);
+        this.host.updateComplete
+          .then(() => focusTextModel(this.std, childId))
+          .catch(console.error);
+        return;
+      }
+
+      this.store.captureSync();
+      this.store.updateBlock(this.model, {
+        collapsed: !this.model.props.collapsed,
+      });
       return;
     } else if (this.model.props.type === 'todo') {
       if (this.store.readonly) return;

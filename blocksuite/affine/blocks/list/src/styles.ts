@@ -65,5 +65,34 @@ export const listBlockStyles = css`
     color: var(--affine-text-secondary-color);
   }
 
+  .affine-list-block__toggle-prefix {
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--affine-icon-color);
+    border-radius: 4px;
+    transition: background 0.1s ease;
+  }
+
+  .affine-list-block__toggle-prefix:hover {
+    background: var(--affine-hover-color);
+  }
+
+  .affine-toggle-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+    transform: rotate(0deg);
+    color: var(--affine-icon-secondary);
+  }
+
+  .affine-toggle-arrow.expanded {
+    transform: rotate(90deg);
+  }
+
   ${listPrefix}
 `;

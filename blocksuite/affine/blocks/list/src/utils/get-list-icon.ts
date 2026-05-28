@@ -7,7 +7,6 @@ import {
   BulletedList04Icon,
   CheckBoxCheckSolidIcon,
   CheckBoxUnIcon,
-  ToggleDownIcon,
   ToggleRightIcon,
 } from '@blocksuite/icons/lit';
 import { html } from 'lit';
@@ -65,10 +64,12 @@ export function getListIcon(
     case 'toggle':
       return html`<div
         contenteditable="false"
-        class="affine-list-block__prefix"
+        class="affine-list-block__prefix affine-list-block__toggle-prefix"
         @click=${onClick}
       >
-        ${showChildren ? ToggleDownIcon() : ToggleRightIcon()}
+        <div class="affine-toggle-arrow ${showChildren ? 'expanded' : ''}">
+          ${ToggleRightIcon({ width: '16px', height: '16px' })}
+        </div>
       </div>`;
     default:
       console.error('Unknown list type', model.props.type, model);

@@ -13,8 +13,7 @@ import {
   QuoteIcon,
   TextIcon,
 } from '@blocksuite/affine-components/icons';
-import { ToggleRightIcon } from '@blocksuite/icons/lit';
-import { TeXIcon } from '@blocksuite/icons/lit';
+import { TeXIcon, ToggleRightIcon } from '@blocksuite/icons/lit';
 import type { TemplateResult } from 'lit';
 
 /**

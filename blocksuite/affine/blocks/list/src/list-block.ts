@@ -174,7 +174,7 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
             [TOGGLE_BUTTON_PARENT_CLASS]: true,
           })}
         >
-          ${this.model.children.length > 0
+          ${this.model.children.length > 0 && this.model.props.type !== 'toggle'
             ? html`
                 <blocksuite-toggle-button
                   .collapsed=${collapsed}

@@ -70,7 +70,7 @@ export function getListIcon(
         @click=${onClick}
       >
         <div class="affine-toggle-arrow ${isExpanded ? 'expanded' : ''}">
-          ${ToggleRightIcon({ width: '16px', height: '16px' })}
+          ${ToggleRightIcon({ width: '18px', height: '18px' })}
         </div>
       </div>`;
     }

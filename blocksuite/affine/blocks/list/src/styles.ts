@@ -69,12 +69,13 @@ export const listBlockStyles = css`
     cursor: pointer;
     width: 24px;
     height: 24px;
+    min-width: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: var(--affine-icon-color);
-    border-radius: 4px;
-    transition: background 0.1s ease;
+    border-radius: 3px;
+    transition: background 0.15s ease;
   }
 
   .affine-list-block__toggle-prefix:hover {

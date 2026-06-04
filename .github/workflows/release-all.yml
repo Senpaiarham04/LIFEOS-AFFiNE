@@ -298,8 +298,7 @@ jobs:
 
       - name: Rename APK
         run: |
-          cp packages/frontend/apps/android/App/app/build/outputs/apk/canaryRelease/*.apk \
-             AFFiNE-LifeOS-${{ inputs.tag }}.apk 2>/dev/null || true
+          find packages/frontend/apps/android/App/app/build/outputs/apk/ -name "*.apk" -exec cp {} AFFiNE-LifeOS-${{ inputs.tag }}.apk \;
           ls -la *.apk
 
       - name: Upload APK

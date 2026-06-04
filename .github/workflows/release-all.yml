@@ -263,6 +263,11 @@ jobs:
             -dname "CN=AFFiNE LifeOS, OU=LifeOS, O=LifeOS, L=Unknown, ST=Unknown, C=DE"
           echo "keystore created"
 
+      - name: Create dummy google-services.json
+        run: |
+          echo '{"project_info":{"project_number":"0","project_id":"dummy"},"client":[{"client_info":{"mobilesdk_app_id":"1:0:android:000","android_client_info":{"package_name":"app.affine.pro"}},"oauth_client":[],"api_key":[{"current_key":"dummy"}],"services":{"analytics_service":{"status":2},"appinvite_service":{"status":2},"ads_service":{"status":2}}}]}' \
+            > packages/frontend/apps/android/App/app/google-services.json
+
       - name: Build APK
         run: |
           export AFFINE_ANDROID_SIGN_KEYSTORE=$(base64 -w0 affine.keystore)

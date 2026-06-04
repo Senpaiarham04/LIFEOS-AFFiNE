@@ -255,6 +255,17 @@ jobs:
           yarn workspaces focus @affine/android
           yarn workspace @affine/android cap sync
 
+      - name: Remove Firebase dependencies from gradle
+        run: |
+          sed -i '/google.service/d' packages/frontend/apps/android/App/app/build.gradle
+          sed -i '/firebase.crashlytics/d' packages/frontend/apps/android/App/app/build.gradle
+          sed -i '/firebase.bom/d' packages/frontend/apps/android/App/app/build.gradle
+          sed -i '/firebase.analytics/d' packages/frontend/apps/android/App/app/build.gradle
+          sed -i '/firebase.storage/d' packages/frontend/apps/android/App/app/build.gradle
+          sed -i '/googlefonts/d' packages/frontend/apps/android/App/app/build.gradle
+          sed -i '/google\.services/d' packages/frontend/apps/android/App/build.gradle
+          sed -i '/firebase\.crashlytics/d' packages/frontend/apps/android/App/build.gradle
+
       - name: Generate keystore
         run: |
           keytool -genkey -v -keystore affine.keystore \

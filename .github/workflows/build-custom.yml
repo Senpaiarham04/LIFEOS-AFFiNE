@@ -61,6 +61,21 @@ jobs:
             cp -f packages/backend/native/server-native.node packages/backend/native/server-native.$arch.node
           done
 
+      - name: Build web frontend
+        run: yarn affine @affine/web build
+        env:
+          BUILD_TYPE: 'canary'
+
+      - name: Build admin
+        run: yarn affine @affine/admin build
+        env:
+          BUILD_TYPE: 'canary'
+
+      - name: Build mobile
+        run: yarn affine @affine/mobile build
+        env:
+          BUILD_TYPE: 'canary'
+
       - name: Build server
         run: |
           yarn workspace @affine/server build 2>&1

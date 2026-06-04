@@ -72,17 +72,15 @@ jobs:
         env:
           BUILD_TYPE: 'canary'
 
-      - name: Build server (rspack bundle)
-        run: yarn affine @affine/server bundle
-        env:
-          NODE_ENV: production
-
-      - name: Verify server build
+      - name: Build server
         run: |
-          echo "=== Checking server dist ==="
-          ls -la packages/backend/server/dist/ 2>/dev/null || echo "NO DIST FOUND"
-          echo "=== Server dir ==="
-          ls packages/backend/server/ | head -20
+          echo "=== Running: yarn workspace @affine/server build ==="
+          yarn workspace @affine/server build 2>&1
+          echo "=== Exit code: $? ==="
+          echo "=== Checking dist ==="
+          ls -laR packages/backend/server/dist/ 2>/dev/null || echo "NO DIST DIRECTORY"
+          echo "=== Server root dir ==="
+          ls packages/backend/server/ 2>/dev/null || echo "NO SERVER DIR"
 
       - name: Login to GHCR
         uses: docker/login-action@v3

@@ -255,16 +255,29 @@ jobs:
           yarn workspaces focus @affine/android
           yarn workspace @affine/android cap sync
 
-      - name: Remove Firebase dependencies from gradle
+      - name: Create google-services.json
         run: |
-          sed -i '/google.service/d' packages/frontend/apps/android/App/app/build.gradle
-          sed -i '/firebase.crashlytics/d' packages/frontend/apps/android/App/app/build.gradle
-          sed -i '/firebase.bom/d' packages/frontend/apps/android/App/app/build.gradle
-          sed -i '/firebase.analytics/d' packages/frontend/apps/android/App/app/build.gradle
-          sed -i '/firebase.storage/d' packages/frontend/apps/android/App/app/build.gradle
-          sed -i '/googlefonts/d' packages/frontend/apps/android/App/app/build.gradle
-          sed -i '/google\.services/d' packages/frontend/apps/android/App/build.gradle
-          sed -i '/firebase\.crashlytics/d' packages/frontend/apps/android/App/build.gradle
+          cat > packages/frontend/apps/android/App/app/google-services.json << 'EOF'
+          {
+            "project_info": { "project_number": "0", "project_id": "affine-lifeos" },
+            "client": [{
+              "client_info": {
+                "mobilesdk_app_id": "1:0:android:0",
+                "android_client_info": { "package_name": "app.affine.pro" }
+              },
+              "oauth_client": [],
+              "api_key": [{ "current_key": "AIzaSyDummy" }],
+              "services": {
+                "analytics_service": { "status": 2 },
+                "cloud_messaging_service": { "status": 2 },
+                "appinvite_service": { "status": 2 },
+                "google_signin_service": { "status": 2 },
+                "ads_service": { "status": 2 }
+              }
+            }],
+            "configuration_version": "1"
+          }
+          EOF
 
       - name: Generate keystore
         run: |

@@ -151,10 +151,16 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
           SENTRYCLI_SKIP_DOWNLOAD: '1'
 
+      - name: Generate electron assets
+        run: yarn affine @affine/electron generate-assets
+
       - name: Build Desktop
         run: yarn affine @affine/electron build
 
-      - name: Package (make-squirrel)
+      - name: Package (electron-forge)
+        run: yarn affine @affine/electron package --platform=win32 --arch=x64
+
+      - name: Make Squirrel Installer
         run: yarn affine @affine/electron make-squirrel --platform=win32 --arch=x64
 
       - name: Find and rename installer
@@ -163,10 +169,10 @@ jobs:
           $exe = Get-ChildItem -Recurse -Filter "*.exe" packages/frontend/apps/electron/out/ | Select-Object -First 1
           if ($exe) {
             Copy-Item $exe.FullName AFFiNE-LifeOS-Setup-${{ inputs.tag }}-win32-x64.exe
-            Write-Host "Found: $($exe.FullName)"
+            Write-Host "Found: $($exe.FullName) ($($exe.Length) bytes)"
           } else {
-            Write-Host "No exe found in out/"
-            Get-ChildItem -Recurse packages/frontend/apps/electron/out/ | Select-Object -First 20
+            Write-Host "No exe found"
+            dir -Recurse packages/frontend/apps/electron/out/ | Select-Object -First 30
           }
 
       - name: Upload Desktop artifact

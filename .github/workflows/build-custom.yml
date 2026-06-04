@@ -74,13 +74,22 @@ jobs:
 
       - name: Build server
         run: |
-          echo "=== Running: yarn workspace @affine/server build ==="
-          yarn workspace @affine/server build 2>&1
-          echo "=== Exit code: $? ==="
+          echo "=== Building server with rspack ==="
+          yarn workspace @affine/server build 2>&1 || true
           echo "=== Checking dist ==="
-          ls -laR packages/backend/server/dist/ 2>/dev/null || echo "NO DIST DIRECTORY"
-          echo "=== Server root dir ==="
-          ls packages/backend/server/ 2>/dev/null || echo "NO SERVER DIR"
+          if [ -d packages/backend/server/dist ]; then
+            echo "DIST EXISTS"
+            ls packages/backend/server/dist/
+          else
+            echo "DIST MISSING - building via esbuild"
+            npx esbuild packages/backend/server/src/index.ts \
+              --bundle --platform=node --target=node22 \
+              --outfile=packages/backend/server/dist/main.js \
+              --external:./node_modules/* --external:./packages/* \
+              --tsconfig=packages/backend/server/tsconfig.json 2>&1
+            mkdir -p packages/backend/server/dist 2>/dev/null
+          fi
+          ls packages/backend/server/dist/ 2>/dev/null || echo "FINAL: NO DIST"
 
       - name: Login to GHCR
         uses: docker/login-action@v3

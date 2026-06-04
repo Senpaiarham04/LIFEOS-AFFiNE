@@ -223,3 +223,70 @@ See [LICENSE] for details.
 [typescript-version-icon]: https://img.shields.io/github/package-json/dependency-version/toeverything/affine/dev/typescript
 [react-version-icon]: https://img.shields.io/github/package-json/dependency-version/toeverything/AFFiNE/react?filename=packages%2Ffrontend%2Fcore%2Fpackage.json&color=rgb(97%2C228%2C251)
 [blocksuite-icon]: https://img.shields.io/github/package-json/dependency-version/toeverything/AFFiNE/@blocksuite/store?color=6880ff&filename=packages%2Ffrontend%2Fcore%2Fpackage.json&label=blocksuite
+
+---
+
+## LifeOS Development Workflow
+
+This fork (Senpaiarham04/LIFEOS-AFFiNE) uses a structured branch strategy for custom features.
+
+### Branch Structure
+
+```
+canary  ← pure upstream, 1:1 with toeverything/AFFiNE:canary
+personal/dev  ← all custom features integrated here
+personal/feature-xyz  ← individual feature branches
+```
+
+### Adding a New Feature
+
+```bash
+# 1. Create feature branch from dev
+git checkout -b personal/my-feature personal/dev
+
+# 2. Code, commit, push
+git add .
+git commit -m "feat: description"
+git push origin personal/my-feature
+```
+
+### Testing (Docker only, ~10 min)
+
+1. Go to GitHub → Actions → **Build Custom AFFiNE Image** → "Run workflow"
+2. Select branch: `personal/my-feature`
+3. After build: deploy on VPS with `docker compose pull && docker compose up -d`
+
+### Release (all platforms, ~60 min)
+
+```bash
+# 3. Merge into dev
+git checkout personal/dev
+git merge personal/my-feature
+git push origin personal/dev
+```
+
+1. Go to GitHub → Actions → **Release All** → "Run workflow"
+2. Enter tag (e.g. `v0.26.3-toggle.2`) and branch: `personal/dev`
+3. Builds:
+   - **Docker Image** → `ghcr.io/senpaiarham04/affine-custom:TAG`
+   - **Desktop** (Windows .exe) → released as artifact
+   - **Android** (.apk) → released as artifact
+
+### Syncing with Upstream
+
+```bash
+git checkout canary
+git pull upstream canary
+git push origin canary
+git checkout personal/dev
+git rebase canary
+# Fix conflicts if any
+git push origin personal/dev --force-with-lease
+```
+
+### Available Workflows
+
+| Workflow | Trigger | Builds |
+|----------|---------|--------|
+| `build-custom.yml` | `workflow_dispatch` | Docker image only |
+| `release-all.yml` | `workflow_dispatch` | Docker + Desktop + Android |

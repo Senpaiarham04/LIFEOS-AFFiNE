@@ -258,22 +258,14 @@ jobs:
       - name: Generate keystore
         run: |
           keytool -genkey -v -keystore affine.keystore \
-            -alias affine -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias key0 -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass affine123 -keypass affine123 \
             -dname "CN=AFFiNE LifeOS, OU=LifeOS, O=LifeOS, L=Unknown, ST=Unknown, C=DE"
           echo "keystore created"
 
-      - name: Create dummy google-services.json
-        run: |
-          echo '{"project_info":{"project_number":"0","project_id":"dummy"},"client":[{"client_info":{"mobilesdk_app_id":"1:0:android:000","android_client_info":{"package_name":"app.affine.pro"}},"oauth_client":[],"api_key":[{"current_key":"dummy"}],"services":{"analytics_service":{"status":2},"appinvite_service":{"status":2},"ads_service":{"status":2}}}]}' \
-            > packages/frontend/apps/android/App/app/google-services.json
-
       - name: Build APK
         run: |
-          export AFFINE_ANDROID_SIGN_KEYSTORE=$(base64 -w0 affine.keystore)
-          export AFFINE_ANDROID_KEYSTORE_PASSWORD=affine123
-          export AFFINE_ANDROID_KEYSTORE_ALIAS_PASSWORD=affine123
-          echo "$AFFINE_ANDROID_SIGN_KEYSTORE" | base64 -d > packages/frontend/apps/android/affine.keystore
+          cp affine.keystore packages/frontend/apps/android/affine.keystore
           yarn workspace @affine/android cap build android --flavor canary --androidreleasetype APK
         env:
           VERSION_NAME: ${{ inputs.tag }}

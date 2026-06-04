@@ -103,5 +103,5 @@ jobs:
           provenance: false
           file: .github/deployment/node/Dockerfile
           tags: |
-            ghcr.io/senpaiarham04/affine-custom:${{ github.event.inputs.tag || 'latest' }}
-            ghcr.io/senpaiarham04/affine-custom:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/affine-custom:${{ github.event.inputs.tag || 'latest' }}
+            ghcr.io/${{ github.repository_owner }}/affine-custom:${{ github.sha }}

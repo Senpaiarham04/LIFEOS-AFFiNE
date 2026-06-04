@@ -54,42 +54,17 @@ jobs:
           DEBUG: 'napi:*'
           CC: 'clang -D_BSD_SOURCE'
 
-      - name: Rename server native binary
-        run: mv ./packages/backend/native/server-native.node ./packages/backend/native/server-native.x64.node
-
-      - name: Build web frontend
-        run: yarn affine @affine/web build
-        env:
-          BUILD_TYPE: 'canary'
-
-      - name: Build admin
-        run: yarn affine @affine/admin build
-        env:
-          BUILD_TYPE: 'canary'
-
-      - name: Build mobile
-        run: yarn affine @affine/mobile build
-        env:
-          BUILD_TYPE: 'canary'
+      - name: Prepare native binaries for bundler
+        run: |
+          ls -la packages/backend/native/
+          for arch in x64 arm64 armv7; do
+            cp -f packages/backend/native/server-native.node packages/backend/native/server-native.$arch.node
+          done
 
       - name: Build server
         run: |
-          echo "=== Building server with rspack ==="
-          yarn workspace @affine/server build 2>&1 || true
-          echo "=== Checking dist ==="
-          if [ -d packages/backend/server/dist ]; then
-            echo "DIST EXISTS"
-            ls packages/backend/server/dist/
-          else
-            echo "DIST MISSING - building via esbuild"
-            npx esbuild packages/backend/server/src/index.ts \
-              --bundle --platform=node --target=node22 \
-              --outfile=packages/backend/server/dist/main.js \
-              --external:./node_modules/* --external:./packages/* \
-              --tsconfig=packages/backend/server/tsconfig.json 2>&1
-            mkdir -p packages/backend/server/dist 2>/dev/null
-          fi
-          ls packages/backend/server/dist/ 2>/dev/null || echo "FINAL: NO DIST"
+          yarn workspace @affine/server build 2>&1
+          ls packages/backend/server/dist/ 2>/dev/null && echo "DIST OK" || echo "DIST MISSING"
 
       - name: Login to GHCR
         uses: docker/login-action@v3

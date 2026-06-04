@@ -1,0 +1,303 @@
+name: Release All (Docker + Desktop + Android)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v0.26.3-toggle.1)'
+        required: true
+        type: string
+      branch:
+        description: 'Branch to build from'
+        required: true
+        default: personal/dev
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+
+env:
+  BUILD_TYPE: canary
+  RELEASE_VERSION: ${{ inputs.tag }}
+
+jobs:
+  # ── Build shared deps (once, used by all) ──
+  setup:
+    runs-on: ubuntu-22.04
+    outputs:
+      git_sha: ${{ steps.sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Get short SHA
+        id: sha
+        run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+  # ── Docker Image ──
+  docker:
+    needs: setup
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: yarn install --immutable --inline-builds
+        env:
+          HUSKY: '0'
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+          SENTRYCLI_SKIP_DOWNLOAD: '1'
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-gnu
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: x86_64-unknown-linux-gnu-@affine/server-native
+      - name: Build server native (Rust)
+        run: yarn workspace @affine/server-native build --target x86_64-unknown-linux-gnu
+        env:
+          CC: 'clang -D_BSD_SOURCE'
+
+      - name: Prepare native binaries for bundler
+        run: |
+          for arch in x64 arm64 armv7; do
+            cp -f packages/backend/native/server-native.node packages/backend/native/server-native.$arch.node
+          done
+
+      - name: Build web frontend
+        run: yarn affine @affine/web build
+        env:
+          BUILD_TYPE: canary
+      - name: Build admin
+        run: yarn affine @affine/admin build
+        env:
+          BUILD_TYPE: canary
+      - name: Build mobile
+        run: yarn affine @affine/mobile build
+        env:
+          BUILD_TYPE: canary
+      - name: Build server
+        run: yarn workspace @affine/server build
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install production deps and Prisma
+        run: |
+          yarn config set --json supportedArchitectures.cpu '["x64"]'
+          yarn config set --json supportedArchitectures.libc '["glibc"]'
+          yarn workspaces focus @affine/server --production
+          yarn workspace @affine/server prisma generate
+          mv ./node_modules ./packages/backend/server
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          pull: true
+          platforms: linux/amd64
+          provenance: false
+          file: .github/deployment/node/Dockerfile
+          tags: |
+            ghcr.io/senpaiarham04/affine-custom:${{ inputs.tag }}
+            ghcr.io/senpaiarham04/affine-custom:${{ needs.setup.outputs.git_sha }}
+
+  # ── Desktop (Windows x64) ──
+  desktop:
+    needs: setup
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: yarn install --immutable --inline-builds
+        env:
+          HUSKY: '0'
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+          SENTRYCLI_SKIP_DOWNLOAD: '1'
+
+      - name: Build Desktop
+        run: yarn affine @affine/electron build
+
+      - name: Package (make-squirrel)
+        run: yarn affine @affine/electron make-squirrel --platform=win32 --arch=x64
+
+      - name: Rename installer
+        run: |
+          mv packages/frontend/apps/electron/out/canary/make/squirrel.windows/x64/*.exe \
+             AFFiNE-LifeOS-Setup-${{ inputs.tag }}-win32-x64.exe 2>/dev/null || true
+          echo "Setup ready"
+
+      - name: Upload Desktop artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: affine-desktop-win32-x64
+          path: AFFiNE-LifeOS-*.exe
+
+  # ── Android (APK) ──
+  android:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Setup Version
+        run: |
+          node -e "
+            const pkg = require('./package.json');
+            pkg.version = '${{ inputs.tag }}'.replace(/^v/, '');
+            require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
+          "
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: yarn install --immutable --inline-builds
+        env:
+          HUSKY: '0'
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+          SENTRYCLI_SKIP_DOWNLOAD: '1'
+
+      - name: Build mobile web dist
+        run: yarn affine @affine/android build
+        env:
+          BUILD_TYPE: canary
+
+      - name: Upload android web dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-web
+          path: packages/frontend/apps/android/dist
+
+  # Temporary: just build the web part and link to upstream mobile build guide
+  android-build:
+    needs: android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Download android web dist
+        uses: actions/download-artifact@v4
+        with:
+          name: android-web
+          path: packages/frontend/apps/android/dist
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Focus android deps
+        run: |
+          yarn workspaces focus @affine/android
+          yarn workspace @affine/android cap sync
+
+      - name: Generate keystore
+        run: |
+          keytool -genkey -v -keystore affine.keystore \
+            -alias affine -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass affine123 -keypass affine123 \
+            -dname "CN=AFFiNE LifeOS, OU=LifeOS, O=LifeOS, L=Unknown, ST=Unknown, C=DE"
+          echo "keystore created"
+
+      - name: Build APK
+        run: |
+          export AFFINE_ANDROID_SIGN_KEYSTORE=$(base64 -w0 affine.keystore)
+          export AFFINE_ANDROID_KEYSTORE_PASSWORD=affine123
+          export AFFINE_ANDROID_KEYSTORE_ALIAS_PASSWORD=affine123
+          echo "$AFFINE_ANDROID_SIGN_KEYSTORE" | base64 -d > packages/frontend/apps/android/affine.keystore
+          yarn workspace @affine/android cap build android --flavor canary --androidreleasetype APK
+        env:
+          VERSION_NAME: ${{ inputs.tag }}
+          AFFINE_ANDROID_KEYSTORE_PASSWORD: affine123
+          AFFINE_ANDROID_KEYSTORE_ALIAS_PASSWORD: affine123
+
+      - name: Rename APK
+        run: |
+          cp packages/frontend/apps/android/App/app/build/outputs/apk/canaryRelease/*.apk \
+             AFFiNE-LifeOS-${{ inputs.tag }}.apk 2>/dev/null || true
+          ls -la *.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: affine-android-apk
+          path: AFFiNE-LifeOS-*.apk
+
+  # ── Tag & Release ──
+  release:
+    if: ${{ always() && needs.docker.result == 'success' }}
+    needs: [docker, desktop, android-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+      - name: List artifacts
+        run: ls -laR release-artifacts/
+      - name: Tag release
+        run: |
+          git tag -f ${{ inputs.tag }}
+          git push origin ${{ inputs.tag }} --force
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ inputs.tag }}
+          tag_name: ${{ inputs.tag }}
+          prerelease: true
+          files: release-artifacts/**/*

@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: personal/toggle-feature
+          ref: personal/dev
 
       - name: Setup Node.js
         uses: actions/setup-node@v6

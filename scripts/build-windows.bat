@@ -16,17 +16,7 @@ echo ===================================================
 
 :: Step 0: Set version in package.json (like CI)
 echo [0/6] Setting version %TAG% in package.json...
-node -e "
-  const fs = require('fs');
-  const rootPkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
-  const electronPkg = JSON.parse(fs.readFileSync('./packages/frontend/apps/electron/package.json', 'utf-8'));
-  const ver = '%TAG%'.replace(/^v/, '');
-  rootPkg.version = ver;
-  electronPkg.version = ver;
-  fs.writeFileSync('./package.json', JSON.stringify(rootPkg, null, 2));
-  fs.writeFileSync('./packages/frontend/apps/electron/package.json', JSON.stringify(electronPkg, null, 2));
-  console.log('Version set to ' + ver);
-"
+node scripts\set-version.mjs %TAG%
 
 :: Step 1: Install dependencies
 echo [1/6] Installing dependencies...

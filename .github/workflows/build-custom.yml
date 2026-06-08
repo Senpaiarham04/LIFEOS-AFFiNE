@@ -99,6 +99,10 @@ jobs:
           yarn workspace @affine/server prisma generate
           mv ./node_modules ./packages/backend/server
 
+      - name: Lowercase repo for GHCR
+        id: repo_lower
+        run: echo "repo=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -109,5 +113,5 @@ jobs:
           provenance: false
           file: .github/deployment/node/Dockerfile
           tags: |
-            ghcr.io/${{ github.repository_owner }}/lifeos-affine/affine-custom:${{ github.event.inputs.tag || 'latest' }}
-            ghcr.io/${{ github.repository_owner }}/lifeos-affine/affine-custom:${{ github.sha }}
+            ghcr.io/${{ steps.repo_lower.outputs.repo }}/affine-custom:${{ github.event.inputs.tag || 'latest' }}
+            ghcr.io/${{ steps.repo_lower.outputs.repo }}/affine-custom:${{ github.sha }}

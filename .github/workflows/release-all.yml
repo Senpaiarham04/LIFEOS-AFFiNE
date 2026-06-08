@@ -186,23 +186,11 @@ jobs:
         env:
           HOIST_NODE_MODULES: '1'
 
-      - name: Zip portable app (no installer)
-        shell: pwsh
-        run: |
-          $outDir = "out/AFFiNE-canary"
-          if (Test-Path "$outDir/win32-x64") {
-            Compress-Archive -Path "$outDir/win32-x64/*" -DestinationPath "AFFiNE-LifeOS-${{ inputs.tag }}-win32-x64.zip"
-            Write-Host "ZIP created: $(Get-Item AFFiNE-LifeOS-${{ inputs.tag }}-win32-x64.zip).Length bytes"
-          } else {
-            Write-Host "Trying to find build output..."
-            Get-ChildItem -Recurse out/ | Select-Object -First 20
-          }
-
-      - name: Upload Desktop artifact (ZIP)
+      - name: Upload portable app directory
         uses: actions/upload-artifact@v4
         with:
-          name: affine-desktop-win32-x64
-          path: AFFiNE-LifeOS-*.zip
+          name: affine-desktop-portable-win32-x64
+          path: out/AFFiNE-canary-win32-x64/
           if-no-files-found: error
 
   # ── Android (APK) ── [DEACTIVATED - works, skipped for speed]

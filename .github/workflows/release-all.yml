@@ -121,8 +121,8 @@ jobs:
           provenance: false
           file: .github/deployment/node/Dockerfile
           tags: |
-            ghcr.io/${{ github.repository }}/affine-custom:${{ inputs.tag }}
-            ghcr.io/${{ github.repository }}/affine-custom:${{ needs.setup.outputs.git_sha }}
+            ghcr.io/${{ github.repository_owner }}/lifeos-affine/affine-custom:${{ inputs.tag }}
+            ghcr.io/${{ github.repository_owner }}/lifeos-affine/affine-custom:${{ needs.setup.outputs.git_sha }}
 
   # ── Desktop (Windows x64) ──
   desktop:

@@ -172,6 +172,12 @@ jobs:
       - name: Generate electron assets
         run: yarn affine @affine/electron generate-assets
 
+      - name: Copy node_modules for forge
+        run: |
+          rm -rf packages/frontend/apps/electron/node_modules
+          cp -r node_modules packages/frontend/apps/electron/node_modules
+        shell: bash
+
       - name: Build Desktop
         run: yarn affine @affine/electron build
         env:

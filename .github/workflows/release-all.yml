@@ -122,8 +122,8 @@ jobs:
           provenance: false
           file: .github/deployment/node/Dockerfile
           tags: |
-            ghcr.io/senpaiarham04/affine-custom:${{ inputs.tag }}
-            ghcr.io/senpaiarham04/affine-custom:${{ needs.setup.outputs.git_sha }}
+            ghcr.io/${{ github.repository }}/affine-custom:${{ inputs.tag }}
+            ghcr.io/${{ github.repository }}/affine-custom:${{ needs.setup.outputs.git_sha }}
 
   # ── Desktop (Windows x64) ──
   desktop:
@@ -143,6 +143,21 @@ jobs:
           node-version-file: '.nvmrc'
       - name: Enable Corepack
         run: corepack enable
+
+      - name: Set versions in package.json
+        run: |
+          VER="${{ inputs.tag }}"
+          VER="${VER#v}"
+          node -e "
+            const fs = require('fs');
+            ['package.json', 'packages/frontend/apps/electron/package.json'].forEach(p => {
+              const pkg = JSON.parse(fs.readFileSync(p, 'utf-8'));
+              pkg.version = '$VER';
+              fs.writeFileSync(p, JSON.stringify(pkg, null, 2));
+            });
+          "
+          echo "Version set to $VER"
+
       - name: Install dependencies
         run: yarn install --immutable --inline-builds
         env:
@@ -184,141 +199,141 @@ jobs:
           path: AFFiNE-LifeOS-*.exe
           if-no-files-found: warn
 
-  # ── Android (APK) ──
-  android:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.branch }}
+  # ── Android (APK) ── [DEACTIVATED - works, skipped for speed]
+  #android:
+  #  needs: setup
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #    - uses: actions/checkout@v6
+  #      with:
+  #        ref: ${{ inputs.branch }}
+  #
+  #    - name: Setup Version
+  #      run: |
+  #        node -e "
+  #          const pkg = require('./package.json');
+  #          pkg.version = '${{ inputs.tag }}'.replace(/^v/, '');
+  #          require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
+  #        "
+  #
+  #    - name: Setup Node.js
+  #      uses: actions/setup-node@v6
+  #      with:
+  #        node-version-file: '.nvmrc'
+  #    - name: Enable Corepack
+  #      run: corepack enable
+  #    - name: Install dependencies
+  #      run: yarn install --immutable --inline-builds
+  #      env:
+  #        HUSKY: '0'
+  #        PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+  #        ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+  #        SENTRYCLI_SKIP_DOWNLOAD: '1'
+  #
+  #    - name: Build mobile web dist
+  #      run: yarn affine @affine/android build
+  #      env:
+  #        BUILD_TYPE: canary
+  #
+  #    - name: Upload android web dist
+  #      uses: actions/upload-artifact@v4
+  #      with:
+  #        name: android-web
+  #        path: packages/frontend/apps/android/dist
+  #
+  ## Temporary: just build the web part and link to upstream mobile build guide
+  #android-build:
+  #  needs: android
+  #  runs-on: ubuntu-latest
+  #  steps:
+  #    - uses: actions/checkout@v6
+  #      with:
+  #        ref: ${{ inputs.branch }}
+  #    - name: Download android web dist
+  #      uses: actions/download-artifact@v4
+  #      with:
+  #        name: android-web
+  #        path: packages/frontend/apps/android/dist
+  #
+  #    - name: Setup Java
+  #      uses: actions/setup-java@v5
+  #      with:
+  #        distribution: temurin
+  #        java-version: '21'
+  #        cache: gradle
+  #
+  #    - name: Setup Rust for Android
+  #      run: |
+  #        rustup target add aarch64-linux-android
+  #        rustup target add x86_64-linux-android
+  #
+  #    - name: Setup Node.js
+  #      uses: actions/setup-node@v6
+  #      with:
+  #        node-version-file: '.nvmrc'
+  #    - name: Enable Corepack
+  #      run: corepack enable
+  #    - name: Focus android deps
+  #      run: |
+  #        yarn workspaces focus @affine/android
+  #        yarn workspace @affine/android cap sync
+  #
+  #    - name: Create google-services.json
+  #      run: |
+  #        cat > packages/frontend/apps/android/App/app/google-services.json << 'EOF'
+  #        {
+  #          "project_info": { "project_number": "0", "project_id": "affine-lifeos" },
+  #          "client": [{
+  #            "client_info": {
+  #              "mobilesdk_app_id": "1:0:android:0",
+  #              "android_client_info": { "package_name": "app.affine.pro" }
+  #            },
+  #            "oauth_client": [],
+  #            "api_key": [{ "current_key": "AIzaSyDummy" }],
+  #            "services": {
+  #              "analytics_service": { "status": 2 },
+  #              "cloud_messaging_service": { "status": 2 },
+  #              "appinvite_service": { "status": 2 },
+  #              "google_signin_service": { "status": 2 },
+  #              "ads_service": { "status": 2 }
+  #            }
+  #          }],
+  #          "configuration_version": "1"
+  #        }
+  #        EOF
+  #
+  #    - name: Generate keystore
+  #      run: |
+  #        keytool -genkey -v -keystore affine.keystore \
+  #          -alias key0 -keyalg RSA -keysize 2048 -validity 10000 \
+  #          -storepass affine123 -keypass affine123 \
+  #          -dname "CN=AFFiNE LifeOS, OU=LifeOS, O=LifeOS, L=Unknown, ST=Unknown, C=DE"
+  #        echo "keystore created"
+  #
+  #    - name: Build APK
+  #      run: |
+  #        cp affine.keystore packages/frontend/apps/android/affine.keystore
+  #        yarn workspace @affine/android cap build android --flavor canary --androidreleasetype APK
+  #      env:
+  #        VERSION_NAME: ${{ inputs.tag }}
+  #        AFFINE_ANDROID_KEYSTORE_PASSWORD: affine123
+  #        AFFINE_ANDROID_KEYSTORE_ALIAS_PASSWORD: affine123
+  #
+  #    - name: Rename APK
+  #      run: |
+  #        find packages/frontend/apps/android/App/app/build/outputs/apk/ -name "*.apk" -exec cp {} AFFiNE-LifeOS-${{ inputs.tag }}.apk \;
+  #        ls -la *.apk
+  #
+  #    - name: Upload APK
+  #      uses: actions/upload-artifact@v4
+  #      with:
+  #        name: affine-android-apk
+  #        path: AFFiNE-LifeOS-*.apk
 
-      - name: Setup Version
-        run: |
-          node -e "
-            const pkg = require('./package.json');
-            pkg.version = '${{ inputs.tag }}'.replace(/^v/, '');
-            require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
-          "
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: '.nvmrc'
-      - name: Enable Corepack
-        run: corepack enable
-      - name: Install dependencies
-        run: yarn install --immutable --inline-builds
-        env:
-          HUSKY: '0'
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
-          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-          SENTRYCLI_SKIP_DOWNLOAD: '1'
-
-      - name: Build mobile web dist
-        run: yarn affine @affine/android build
-        env:
-          BUILD_TYPE: canary
-
-      - name: Upload android web dist
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-web
-          path: packages/frontend/apps/android/dist
-
-  # Temporary: just build the web part and link to upstream mobile build guide
-  android-build:
-    needs: android
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.branch }}
-      - name: Download android web dist
-        uses: actions/download-artifact@v4
-        with:
-          name: android-web
-          path: packages/frontend/apps/android/dist
-
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: gradle
-
-      - name: Setup Rust for Android
-        run: |
-          rustup target add aarch64-linux-android
-          rustup target add x86_64-linux-android
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: '.nvmrc'
-      - name: Enable Corepack
-        run: corepack enable
-      - name: Focus android deps
-        run: |
-          yarn workspaces focus @affine/android
-          yarn workspace @affine/android cap sync
-
-      - name: Create google-services.json
-        run: |
-          cat > packages/frontend/apps/android/App/app/google-services.json << 'EOF'
-          {
-            "project_info": { "project_number": "0", "project_id": "affine-lifeos" },
-            "client": [{
-              "client_info": {
-                "mobilesdk_app_id": "1:0:android:0",
-                "android_client_info": { "package_name": "app.affine.pro" }
-              },
-              "oauth_client": [],
-              "api_key": [{ "current_key": "AIzaSyDummy" }],
-              "services": {
-                "analytics_service": { "status": 2 },
-                "cloud_messaging_service": { "status": 2 },
-                "appinvite_service": { "status": 2 },
-                "google_signin_service": { "status": 2 },
-                "ads_service": { "status": 2 }
-              }
-            }],
-            "configuration_version": "1"
-          }
-          EOF
-
-      - name: Generate keystore
-        run: |
-          keytool -genkey -v -keystore affine.keystore \
-            -alias key0 -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass affine123 -keypass affine123 \
-            -dname "CN=AFFiNE LifeOS, OU=LifeOS, O=LifeOS, L=Unknown, ST=Unknown, C=DE"
-          echo "keystore created"
-
-      - name: Build APK
-        run: |
-          cp affine.keystore packages/frontend/apps/android/affine.keystore
-          yarn workspace @affine/android cap build android --flavor canary --androidreleasetype APK
-        env:
-          VERSION_NAME: ${{ inputs.tag }}
-          AFFINE_ANDROID_KEYSTORE_PASSWORD: affine123
-          AFFINE_ANDROID_KEYSTORE_ALIAS_PASSWORD: affine123
-
-      - name: Rename APK
-        run: |
-          find packages/frontend/apps/android/App/app/build/outputs/apk/ -name "*.apk" -exec cp {} AFFiNE-LifeOS-${{ inputs.tag }}.apk \;
-          ls -la *.apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: affine-android-apk
-          path: AFFiNE-LifeOS-*.apk
-
-  # ── Tag & Release ──
+  # ── Tag & Release (only if docker succeeded) ──
   release:
     if: ${{ always() && needs.docker.result == 'success' }}
-    needs: [docker, desktop, android-build]
+    needs: [docker, desktop]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

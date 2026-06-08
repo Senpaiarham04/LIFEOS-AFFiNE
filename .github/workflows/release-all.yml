@@ -186,29 +186,24 @@ jobs:
         env:
           HOIST_NODE_MODULES: '1'
 
-      - name: Make Squirrel Installer
-        run: yarn affine @affine/electron make-squirrel --platform=win32 --arch=x64
-        env:
-          HOIST_NODE_MODULES: '1'
-
-      - name: Find and rename installer
+      - name: Zip portable app (no installer)
         shell: pwsh
         run: |
-          $exe = Get-ChildItem -Recurse -Filter "*.exe" packages/frontend/apps/electron/out/ | Select-Object -First 1
-          if ($exe) {
-            Copy-Item $exe.FullName AFFiNE-LifeOS-Setup-${{ inputs.tag }}-win32-x64.exe
-            Write-Host "Found: $($exe.FullName) ($($exe.Length) bytes)"
+          $outDir = "out/AFFiNE-canary"
+          if (Test-Path "$outDir/win32-x64") {
+            Compress-Archive -Path "$outDir/win32-x64/*" -DestinationPath "AFFiNE-LifeOS-${{ inputs.tag }}-win32-x64.zip"
+            Write-Host "ZIP created: $(Get-Item AFFiNE-LifeOS-${{ inputs.tag }}-win32-x64.zip).Length bytes"
           } else {
-            Write-Host "No exe found"
-            dir -Recurse packages/frontend/apps/electron/out/ | Select-Object -First 30
+            Write-Host "Trying to find build output..."
+            Get-ChildItem -Recurse out/ | Select-Object -First 20
           }
 
-      - name: Upload Desktop artifact
+      - name: Upload Desktop artifact (ZIP)
         uses: actions/upload-artifact@v4
         with:
           name: affine-desktop-win32-x64
-          path: AFFiNE-LifeOS-*.exe
-          if-no-files-found: warn
+          path: AFFiNE-LifeOS-*.zip
+          if-no-files-found: error
 
   # ── Android (APK) ── [DEACTIVATED - works, skipped for speed]
   #android:

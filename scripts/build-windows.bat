@@ -7,6 +7,10 @@ setlocal enabledelayedexpansion
 set TAG=%1
 if "%TAG%"=="" set TAG=local-dev
 
+:: Strip optional v prefix for version comparison
+set VER=%TAG%
+if "%VER:~0,1%"=="v" set VER=%VER:~1%
+
 cd /D "%~dp0.."
 set ROOT=%CD%
 
@@ -28,7 +32,7 @@ if %ERRORLEVEL% neq 0 (
 
 :: Step 2: Generate electron assets
 echo [2/6] Generating electron assets...
-set RELEASE_VERSION=%TAG%
+set RELEASE_VERSION=%VER%
 call yarn affine @affine/electron generate-assets
 if %ERRORLEVEL% neq 0 (
     echo ERROR: generate-assets failed

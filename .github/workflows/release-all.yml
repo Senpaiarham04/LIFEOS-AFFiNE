@@ -181,12 +181,19 @@ jobs:
       - name: Build Desktop
         run: yarn affine @affine/electron build
 
+      - name: Create node_modules junction for forge
+        shell: cmd
+        run: |
+          rmdir packages\frontend\apps\electron\node_modules /s /q 2>nul
+          mklink /J packages\frontend\apps\electron\node_modules node_modules
+
       - name: Package (electron-forge)
         id: forge_package
         run: yarn affine @affine/electron package --platform=win32 --arch=x64
-        continue-on-error: true
+        env:
+          HOIST_NODE_MODULES: '1'
 
-      - name: Fix missing deps in packaged app
+      - name: Copy missing deps into packaged app
         id: fix_deps
         shell: pwsh
         run: |

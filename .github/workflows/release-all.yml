@@ -21,7 +21,6 @@ permissions:
 
 env:
   BUILD_TYPE: canary
-  RELEASE_VERSION: ${{ inputs.tag }}
 
 jobs:
   # ── Build shared deps (once, used by all) ──
@@ -168,8 +167,6 @@ jobs:
 
       - name: Generate electron assets
         run: yarn affine @affine/electron generate-assets
-        env:
-          RELEASE_VERSION: ${{ inputs.tag }}
 
       - name: Build Desktop
         run: yarn affine @affine/electron build

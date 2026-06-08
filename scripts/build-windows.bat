@@ -14,8 +14,22 @@ echo ===================================================
 echo Building AFFiNE Desktop (Windows x64) - %TAG%
 echo ===================================================
 
+:: Step 0: Set version in package.json (like CI)
+echo [0/6] Setting version %TAG% in package.json...
+node -e "
+  const fs = require('fs');
+  const rootPkg = JSON.parse(fs.readFileSync('./package.json', 'utf-8'));
+  const electronPkg = JSON.parse(fs.readFileSync('./packages/frontend/apps/electron/package.json', 'utf-8'));
+  const ver = '%TAG%'.replace(/^v/, '');
+  rootPkg.version = ver;
+  electronPkg.version = ver;
+  fs.writeFileSync('./package.json', JSON.stringify(rootPkg, null, 2));
+  fs.writeFileSync('./packages/frontend/apps/electron/package.json', JSON.stringify(electronPkg, null, 2));
+  console.log('Version set to ' + ver);
+"
+
 :: Step 1: Install dependencies
-echo [1/5] Installing dependencies...
+echo [1/6] Installing dependencies...
 call yarn install --immutable --inline-builds
 if %ERRORLEVEL% neq 0 (
     echo ERROR: yarn install failed
@@ -23,7 +37,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 :: Step 2: Generate electron assets
-echo [2/5] Generating electron assets...
+echo [2/6] Generating electron assets...
 set RELEASE_VERSION=%TAG%
 call yarn affine @affine/electron generate-assets
 if %ERRORLEVEL% neq 0 (
@@ -32,7 +46,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 :: Step 3: Build desktop
-echo [3/5] Building desktop...
+echo [3/6] Building desktop...
 call yarn affine @affine/electron build
 if %ERRORLEVEL% neq 0 (
     echo ERROR: desktop build failed
@@ -40,7 +54,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 :: Step 4: Package with electron-forge
-echo [4/5] Packaging...
+echo [4/6] Packaging...
 call yarn affine @affine/electron package --platform=win32 --arch=x64
 if %ERRORLEVEL% neq 0 (
     echo ERROR: packaging failed
@@ -48,7 +62,7 @@ if %ERRORLEVEL% neq 0 (
 )
 
 :: Step 5: Make Squirrel installer
-echo [5/5] Creating Squirrel installer...
+echo [5/6] Creating Squirrel installer...
 call yarn affine @affine/electron make-squirrel --platform=win32 --arch=x64
 if %ERRORLEVEL% neq 0 (
     echo WARN: make-squirrel had issues, checking output...
@@ -61,6 +75,13 @@ for /r "%ROOT%\packages\frontend\apps\electron\out" %%f in (*.exe) do (
     copy "%%f" "%ROOT%\AFFiNE-LifeOS-%TAG%-win32-x64.exe" >nul
     echo FOUND: %%f
     echo COPIED TO: %ROOT%\AFFiNE-LifeOS-%TAG%-win32-x64.exe
+)
+
+:: Step 6: Restore original package.json versions
+echo [6/6] Restoring package.json versions...
+git checkout -- package.json packages/frontend/apps/electron/package.json 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo WARN: Could not restore via git, skipping
 )
 
 echo ===================================================
